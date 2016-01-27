@@ -12,7 +12,7 @@ INSTAPAPER_UN = '***'
 INSTAPAPER_PW = '***'
 
 HN_TWITTER = 'newsyc100'
-TARGET_URL = 'newyorker.com'
+TARGET_URLS = ['newyorker.com','theatlantic.com']
 
 T_CO_SEARCH_KEY = 'https://t.co'
 
@@ -70,7 +70,7 @@ i = Instapaper(INSTAPAPER_UN, INSTAPAPER_PW)
 # print i.auth()
 # (statuscode, statusmessage) = i.add_item("URL", "title")
 
-expander = URLExpander()
+expander = URLExpander() # initialize an expander instance
 
 # Pulls out the link URL from the tweet (link is first URL), and expands from t.co shortlink
 def getUrls(statuses):
@@ -78,22 +78,10 @@ def getUrls(statuses):
     for s in statuses:
         if string.find(s.text, 'https://') > -1: # if it contains an https url
             url = s.text[string.find(s.text, 'https://'):string.find(s.text, ' ', string.find(s.text, 'https://'))] # pull out the url
-            url_to_add = expander.query(url=url)
+            url_to_add = expander.query(url=url) 
             if string.find(url_to_add, T_CO_SEARCH_KEY) == -1:
                 urls.append(url_to_add)
-            else:
-                url_to_add = expander.query(url=url)
-                if string.find(url_to_add, T_CO_SEARCH_KEY) == -1:
-                    urls.append(url_to_add)
-                else:
-                    urls.append(expander.query(url_to_add))
-            urls.append(expander.query(expander.query(url=url)))
-        elif string.find(s.text, 'http://') > -1: # if it contains an http url
-            url = s.text[string.find(s.text, 'http://'):string.find(s.text, ' ', string.find(s.text, 'http://'))] # pull out the url
-            url_to_add = expander.query(url=url)
-            if string.find(url_to_add, T_CO_SEARCH_KEY) == -1:
-                urls.append(url_to_add)
-            else:
+            else: # sometimes urls need expanding more than once
                 url_to_add = expander.query(url=url)
                 if string.find(url_to_add, T_CO_SEARCH_KEY) == -1:
                     urls.append(url_to_add)
@@ -106,13 +94,15 @@ def getUrls(statuses):
 def filterUrls(urls):
     filtered_urls = []
     for url in urls:
-        if string.find(url, TARGET_URL) > -1: # found
-            filtered_urls.append(url)
+        for targetUrl in TARGET_URLS:
+            if string.find(url, targetUrl) > -1: # found
+                filtered_urls.append(url)
     return filtered_urls
 
-urls = getUrls(statuses)
-urls = filterUrls(urls)
+urls = getUrls(statuses) # extract article URLs from tweets
+urls = filterUrls(urls) # filter for articles from the desired website
 
+# Add any results to Instapaper
 for url in urls:
     print "added to Instapaper:",url
     i.add_item(url, '')
