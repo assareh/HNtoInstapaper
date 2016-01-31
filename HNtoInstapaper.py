@@ -59,18 +59,6 @@ api = twitter.Api(consumer_key=CONSUMER_KEY,
                   consumer_secret=CONSUMER_SECRET,
                   access_token_key=ACCESS_TOKEN_KEY,
                   access_token_secret=ACCESS_TOKEN_SECRET)
- 
-# GetUserTimeline(self, user_id=None, screen_name=None, since_id=None, max_id=None, 
-#                 count=None, include_rts=True, trim_user=None, exclude_replies=None)
-statuses = api.GetUserTimeline(screen_name=HN_TWITTER, count=200)
-
-# Instapaper Library
-from instapaperlib import Instapaper
-i = Instapaper(INSTAPAPER_UN, INSTAPAPER_PW)
-# print i.auth()
-# (statuscode, statusmessage) = i.add_item("URL", "title")
-
-expander = URLExpander() # initialize an expander instance
 
 # Pulls out the link URL from the tweet (link is first URL), and expands from t.co shortlink
 def getUrls(statuses):
@@ -90,6 +78,8 @@ def getUrls(statuses):
             urls.append(expander.query(expander.query(url=url)))
     return urls
 
+##### should add a function for url expanding
+
 # Searches and filters list of URLs for target URL
 def filterUrls(urls):
     filtered_urls = []
@@ -99,10 +89,35 @@ def filterUrls(urls):
                 filtered_urls.append(url)
     return filtered_urls
 
-urls = getUrls(statuses) # extract article URLs from tweets
-urls = filterUrls(urls) # filter for articles from the desired website
+# Read latest tweet ID scanned from log
+f = open(HN_TWITTER + '.txt', 'a+') # so that it will create if file does not exist
+f.close()
+f = open(HN_TWITTER + '.txt', 'r+')
+last_id = f.readline()
 
-# Add any results to Instapaper
-for url in urls:
-    print "added to Instapaper:",url
-    i.add_item(url, '')
+# GetUserTimeline(self, user_id=None, screen_name=None, since_id=None, max_id=None, 
+#                 count=None, include_rts=True, trim_user=None, exclude_replies=None)
+statuses = api.GetUserTimeline(screen_name=HN_TWITTER, since_id=last_id, count=200)
+
+if len(statuses) > 0:
+    # Instapaper Library
+    from instapaperlib import Instapaper
+    i = Instapaper(INSTAPAPER_UN, INSTAPAPER_PW)
+
+    expander = URLExpander()
+
+    urls = getUrls(statuses)
+    urls = filterUrls(urls)
+
+    for url in urls:
+        print "added to Instapaper:",url
+        i.add_item(url, '')
+
+    # Log latest tweet
+    f.seek(0,0)
+    f.write(str(statuses[0].id))
+
+else:
+    print "No new tweets since this script was last run."
+
+f.close()
