@@ -9,4 +9,4 @@ I like reading The New Yorker and The Atlantic, but this script can be used for 
 
 To use, populate your Twitter API credentials and Instapaper account credentials. 
 Edit the TARGET_URLS list to include your desired websites (nytimes.com, medium.com, etc).
-Run!
+Run!	
