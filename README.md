@@ -7,4 +7,4 @@ I like reading The New Yorker and The Atlantic, but this script can be used for 
 
 It will log the unique ID of the most recent scanned tweet so subsequent runs will be much faster.
 
-To use, populate your Twitter API credentials and Instapaper account credentials. Edit the TARGET_URLS list to include your desired websites (nytimes.com, medium.com, etc). Run!
+To use, populate your Twitter API credentials and Instapaper account credentials. Edit the TARGET_URLS list to include your desired websites, including their link shortener domains (nytimes.com, nyti.ms, etc). Run!

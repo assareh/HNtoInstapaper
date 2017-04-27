@@ -1,4 +1,5 @@
-import httplib
+import sys
+import requests
 import string
 import urlparse
 from instapaperlib import Instapaper
@@ -13,35 +14,32 @@ INSTAPAPER_UN = '***'
 INSTAPAPER_PW = '***'
 
 HN_TWITTER = 'newsyc100'
-TARGET_URLS = ['newyorker.com', 'theatlantic.com']
+TARGET_URLS = ['newyorker.com', 'nyer.cm', 'theatlantic.com', 'theatln.tc'] 
+# be sure to include the target site's standard domain name and link shortened domain name
 
-T_CO_SEARCH_KEY = 'https://t.co'
-
-class URLExpander: #https://taoofmac.com/space/blog/2009/08/10/2205
+class URLExpander: # derived from https://taoofmac.com/space/blog/2009/08/10/2205
     # known shortening services
-    shorteners = ['tr.im', 'is.gd', 'tinyurl.com', 'bit.ly', 'snipurl.com', 'cli.gs',
+    shorteners = ['t.co', 'tr.im', 'is.gd', 'tinyurl.com', 'bit.ly', 'snipurl.com', 'cli.gs',
                   'feedproxy.google.com', 'feeds.arstechnica.com']
-    twofers = [u'\u272Adf.ws']
-    # learned hosts
     learned = []
 
     def resolve(self, url, components):
         """ Try to resolve a single URL """
-        c = httplib.HTTPConnection(components.netloc)
-        c.request("GET", components.path)
-        r = c.getresponse()
-        l = r.getheader('Location')
-        if l == None:
-            return url # it might be impossible to resolve, so best leave it as is
+        r = requests.head(url)
+        if r.status_code != 404: # avoid a url not found
+            l = r.headers['Location']
+            if l == None:
+                return url # it might be impossible to resolve, so best leave it as is
+            if urlparse.urlparse(l).netloc in self.shorteners:
+                return self.resolve(l, components) # multiple shorteners, repeat
+            else:
+                return l
         else:
-            return l
+            return '' # invalid url
 
     def query(self, url, recurse=True):
         """ Resolve a URL """
         components = urlparse.urlparse(url)
-        # Check weird shortening services first
-        if (components.netloc in self.twofers) and recurse:
-            return self.query(self.resolve(url, components), False)
         # Check known shortening services first
         if components.netloc in self.shorteners:
             return self.resolve(url, components)
@@ -69,19 +67,11 @@ def getUrls(statuses):
         if string.find(s.text, 'https://') > -1: # if it contains an https url
             url = s.text[string.find(s.text, 'https://'):string.find(s.text, ' ',\
                          string.find(s.text, 'https://'))] # pull out the url
-            url_to_add = expander.query(url=url)
-            if string.find(url_to_add, T_CO_SEARCH_KEY) == -1:
-                urls.append(url_to_add)
-            else: # sometimes urls need expanding more than once
-                url_to_add = expander.query(url=url)
-                if string.find(url_to_add, T_CO_SEARCH_KEY) == -1:
-                    urls.append(url_to_add)
-                else:
-                    urls.append(expander.query(url_to_add))
-            urls.append(expander.query(expander.query(url=url)))
+            urls.append(expander.query(url=url))
+        # provide a status readout
+        sys.stdout.write('.')
+        sys.stdout.flush()
     return urls
-
-##### should add a function for url expanding
 
 def filterUrls(urls):
     """ Searches and filters list of URLs for target URL """
@@ -111,9 +101,13 @@ if len(statuses) > 0:
     urls = getUrls(statuses)
     urls = filterUrls(urls)
 
+    print ''
+
     for url in urls:
         print "added to Instapaper:", url
         i.add_item(url, '')
+
+    print 'Done!'
 
     # Log latest tweet
     f.seek(0, 0)
