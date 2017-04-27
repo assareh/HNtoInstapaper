@@ -1,7 +1,7 @@
 import sys
-import requests
 import string
 import urlparse
+import requests
 from instapaperlib import Instapaper
 import twitter
 
@@ -14,10 +14,12 @@ INSTAPAPER_UN = '***'
 INSTAPAPER_PW = '***'
 
 HN_TWITTER = 'newsyc100'
-TARGET_URLS = ['newyorker.com', 'nyer.cm', 'theatlantic.com', 'theatln.tc'] 
+TARGET_URLS = ['newyorker.com', 'nyer.cm', 'theatlantic.com', 'theatln.tc']
 # be sure to include the target site's standard domain name and link shortened domain name
 
-class URLExpander: # derived from https://taoofmac.com/space/blog/2009/08/10/2205
+class URLExpander:
+    """ Class for expanding link shortened URLs
+    derived from https://taoofmac.com/space/blog/2009/08/10/2205 """
     # known shortening services
     shorteners = ['t.co', 'tr.im', 'is.gd', 'tinyurl.com', 'bit.ly', 'snipurl.com', 'cli.gs',
                   'feedproxy.google.com', 'feeds.arstechnica.com']
@@ -28,7 +30,7 @@ class URLExpander: # derived from https://taoofmac.com/space/blog/2009/08/10/220
         r = requests.head(url)
         if r.status_code != 404: # avoid a url not found
             l = r.headers['Location']
-            if l == None:
+            if l is None:
                 return url # it might be impossible to resolve, so best leave it as is
             if urlparse.urlparse(l).netloc in self.shorteners:
                 return self.resolve(l, components) # multiple shorteners, repeat
@@ -37,7 +39,7 @@ class URLExpander: # derived from https://taoofmac.com/space/blog/2009/08/10/220
         else:
             return '' # invalid url
 
-    def query(self, url, recurse=True):
+    def query(self, url):
         """ Resolve a URL """
         components = urlparse.urlparse(url)
         # Check known shortening services first
@@ -60,7 +62,7 @@ api = twitter.Api(consumer_key=CONSUMER_KEY,
                   access_token_secret=ACCESS_TOKEN_SECRET)
 
 def getUrls(statuses):
-    """ Pulls out the link URL from the tweet (link is first URL), and expands from t.co 
+    """ Pulls out the link URL from the tweet (link is first URL), and expands from t.co
     shortlink """
     urls = []
     for s in statuses:
