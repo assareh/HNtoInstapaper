@@ -1,3 +1,7 @@
+""" This script finds top articles on Hacker News from sites you specify
+    and automatically saves them to Instapaper for later reading """
+
+import os
 import sys
 import string
 import urlparse
@@ -17,7 +21,7 @@ HN_TWITTER = 'newsyc100'
 TARGET_URLS = ['newyorker.com', 'nyer.cm', 'theatlantic.com', 'theatln.tc']
 # be sure to include the target site's standard domain name and link shortened domain name
 
-class URLExpander:
+class URLExpander(object):
     """ Class for expanding link shortened URLs
     derived from https://taoofmac.com/space/blog/2009/08/10/2205 """
     # known shortening services
@@ -85,9 +89,10 @@ def filterUrls(urls):
     return filtered_urls
 
 # Read latest tweet ID scanned from log
-f = open(HN_TWITTER + '.txt', 'a+') # so that it will create if file does not exist
+f = open(os.path.join(os.path.dirname(__file__), HN_TWITTER) + '.txt', 'a+')
+# the above will create the file if it does not exist
 f.close()
-f = open(HN_TWITTER + '.txt', 'r+')
+f = open(os.path.join(os.path.dirname(__file__), HN_TWITTER) + '.txt', 'r+')
 last_id = f.readline()
 
 # GetUserTimeline(self, user_id=None, screen_name=None, since_id=None, max_id=None,
