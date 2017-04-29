@@ -1,8 +1,11 @@
+#!/usr/bin/env python
+
 """ This script finds top articles on Hacker News from sites you specify
     and automatically saves them to Instapaper for later reading """
 
 import os
 import sys
+import time
 import string
 import urlparse
 import requests
@@ -58,6 +61,9 @@ class URLExpander(object):
                 return ping
         # The original URL was OK
         return url
+
+# this is so when automated with launchd, the system has time to establish WiFi connection
+time.sleep(10)
 
 # Authenticate with Twitter API
 api = twitter.Api(consumer_key=CONSUMER_KEY,
