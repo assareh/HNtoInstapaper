@@ -17,7 +17,9 @@ In macOS, this script can be scheduled to run automatically in the background by
 2. Place the plist file in your ~/Library/LaunchAgents folder.
 3. Open a terminal, navigate to the directory containing this script, and run the following commands:
 
-    chmod u+x HNtoInstapaper.py
-    launchctl load ~/Library/LaunchAgents/net.assareh.hntoinstapaper.plist
+```
+chmod u+x HNtoInstapaper.py
+launchctl load ~/Library/LaunchAgents/net.assareh.hntoinstapaper.plist
+```
 
 Further information on launchd and launchctl can be found [here](https://nathangrigg.com/2012/07/schedule-jobs-using-launchd).
