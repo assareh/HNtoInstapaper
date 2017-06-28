@@ -11,15 +11,11 @@ To use, populate your Twitter API credentials and Instapaper account credentials
 
 ## Scheduling
 
-In macOS, this script can be scheduled to run automatically in the background by performing the following steps:
+In macOS or Linux, this script can be scheduled to run automatically using [Cron](https://en.wikipedia.org/wiki/Cron). I have mine configured to run daily at midnight. Here's how:
 
-1. Open the plist file and edit the path string to reflect the location of the script on your hard drive.
-2. Place the plist file in your ~/Library/LaunchAgents folder.
-3. Open a terminal, navigate to the directory containing this script, and run the following commands:
-
+1. Launch a terminal and execute ```crontab -e```
+2. Add the following line to the cron file, editing the path to reflect the correct path on your machine:
 ```
-chmod u+x HNtoInstapaper.py
-launchctl load ~/Library/LaunchAgents/net.assareh.hntoinstapaper.plist
+0 0 * * * /path/to/HNtoInstapaper.py
 ```
-
-Further information on launchd and launchctl can be found [here](https://nathangrigg.com/2012/07/schedule-jobs-using-launchd).
+3. Save and exit the editor.
