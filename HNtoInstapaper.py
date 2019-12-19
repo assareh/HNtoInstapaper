@@ -8,21 +8,11 @@ import sys
 import time
 import string
 import urlparse
-import requests
 from instapaperlib import Instapaper
+import requests
 import twitter
+import hvac
 
-CONSUMER_KEY = '***'
-CONSUMER_SECRET = '***'
-ACCESS_TOKEN_KEY = '***'
-ACCESS_TOKEN_SECRET = '***'
-
-INSTAPAPER_UN = '***'
-INSTAPAPER_PW = '***'
-
-HN_TWITTER = 'newsyc100'
-TARGET_URLS = ['newyorker.com', 'nyer.cm', 'theatlantic.com', 'theatln.tc']
-# be sure to include the target site's standard domain name and link shortened domain name
 
 class URLExpander(object):
     """ Class for expanding link shortened URLs
@@ -34,15 +24,15 @@ class URLExpander(object):
 
     def resolve(self, url, components):
         """ Try to resolve a single URL """
-        r = requests.head(url)
-        if r.status_code != 404: # avoid a url not found
-            l = r.headers['Location']
-            if l is None:
+        response = requests.head(url)
+        if response.status_code != 404: # avoid a url not found
+            location = response.headers['Location']
+            if location is None:
                 return url # it might be impossible to resolve, so best leave it as is
-            if urlparse.urlparse(l).netloc in self.shorteners:
-                return self.resolve(l, components) # multiple shorteners, repeat
+            if urlparse.urlparse(location).netloc in self.shorteners:
+                return self.resolve(location, components) # multiple shorteners, repeat
             else:
-                return l
+                return location
         else:
             return '' # invalid url
 
@@ -62,71 +52,102 @@ class URLExpander(object):
         # The original URL was OK
         return url
 
-# this is so when automated with launchd, the system has time to establish WiFi connection
-time.sleep(10)
 
-# Authenticate with Twitter API
-api = twitter.Api(consumer_key=CONSUMER_KEY,
-                  consumer_secret=CONSUMER_SECRET,
-                  access_token_key=ACCESS_TOKEN_KEY,
-                  access_token_secret=ACCESS_TOKEN_SECRET)
-
-def getUrls(statuses):
+def get_urls(statuses):
     """ Pulls out the link URL from the tweet (link is first URL), and expands from t.co
     shortlink """
     urls = []
-    for s in statuses:
-        if string.find(s.text, 'https://') > -1: # if it contains an https url
-            url = s.text[string.find(s.text, 'https://'):string.find(s.text, ' ',\
-                         string.find(s.text, 'https://'))] # pull out the url
-            urls.append(expander.query(url=url))
+    for status in statuses:
+        if string.find(status.text, 'https://') > -1: # if it contains an https url
+            url = status.text[string.find(status.text, 'https://'):string.find(status.text, ' ',\
+                         string.find(status.text, 'https://'))] # pull out the url
+            urls.append(EXPANDER.query(url=url))
         # provide a status readout
         sys.stdout.write('.')
         sys.stdout.flush()
     return urls
 
-def filterUrls(urls):
+def filter_urls(urls):
     """ Searches and filters list of URLs for target URL """
     filtered_urls = []
     for url in urls:
-        for targetUrl in TARGET_URLS:
-            if string.find(url, targetUrl) > -1: # found
+        for target_url in TARGET_URLS:
+            if string.find(url, target_url) > -1: # found
                 filtered_urls.append(url)
     return filtered_urls
 
+
+# Authenticate to Vault
+VAULT_CLIENT = hvac.Client(
+    url=os.environ['VAULT_ADDR'],
+    token=os.environ['VAULT_TOKEN']
+)
+
+# Read the data written under path: secret/instapaper
+VAULT_READ_RESPONSE = VAULT_CLIENT.secrets.kv.read_secret_version(path='instapaper')
+# print('Value under path "secret/instapaper" / key "username": {val}'.format(\
+# val=VAULT_READ_RESPONSE['data']['data']['username'],))
+
+# Write the secrets to variables
+INSTAPAPER_UN = VAULT_READ_RESPONSE['data']['data']['username']
+INSTAPAPER_PW = VAULT_READ_RESPONSE['data']['data']['password']
+
+# Read the data written under path: secret/twitter
+VAULT_READ_RESPONSE = VAULT_CLIENT.secrets.kv.read_secret_version(path='twitter')
+
+# Write the secrets to variables
+CONSUMER_KEY = VAULT_READ_RESPONSE['data']['data']['CONSUMER_KEY']
+CONSUMER_SECRET = VAULT_READ_RESPONSE['data']['data']['CONSUMER_SECRET']
+ACCESS_TOKEN_KEY = VAULT_READ_RESPONSE['data']['data']['ACCESS_TOKEN_KEY']
+ACCESS_TOKEN_SECRET = VAULT_READ_RESPONSE['data']['data']['ACCESS_TOKEN_SECRET']
+
+# Variable definitions
+# be sure to include the target site's standard domain name and link shortened domain name
+HN_TWITTER = 'newsyc100'
+TARGET_URLS = ['newyorker.com', 'nyer.cm']
+
+# this is so when automated with launchd, the system has time to establish WiFi connection
+time.sleep(10)
+
+# Authenticate with Twitter API
+API = twitter.Api(consumer_key=CONSUMER_KEY,
+                  consumer_secret=CONSUMER_SECRET,
+                  access_token_key=ACCESS_TOKEN_KEY,
+                  access_token_secret=ACCESS_TOKEN_SECRET)
+
 # Read latest tweet ID scanned from log
-f = open(os.path.join(os.path.dirname(__file__), HN_TWITTER) + '.txt', 'a+')
+F = open(os.path.join(os.path.dirname(__file__), HN_TWITTER) + '.txt', 'a+')
 # the above will create the file if it does not exist
-f.close()
-f = open(os.path.join(os.path.dirname(__file__), HN_TWITTER) + '.txt', 'r+')
-last_id = f.readline()
+F.close()
+F = open(os.path.join(os.path.dirname(__file__), HN_TWITTER) + '.txt', 'r+')
+LAST_ID = F.readline()
 
 # GetUserTimeline(self, user_id=None, screen_name=None, since_id=None, max_id=None,
 #                 count=None, include_rts=True, trim_user=None, exclude_replies=None)
-statuses = api.GetUserTimeline(screen_name=HN_TWITTER, since_id=last_id, count=200)
+STATUSES = API.GetUserTimeline(screen_name=HN_TWITTER, since_id=LAST_ID, count=200)
 
-if len(statuses) > 0:
+if len(STATUSES) > 0:
     # Instapaper Library
     i = Instapaper(INSTAPAPER_UN, INSTAPAPER_PW)
 
-    expander = URLExpander()
+    EXPANDER = URLExpander()
 
-    urls = getUrls(statuses)
-    urls = filterUrls(urls)
+    URLS = get_urls(STATUSES)
+    URLS = filter_urls(URLS)
 
     print ''
 
-    for url in urls:
+    for url in URLS:
         print "added to Instapaper:", url
         i.add_item(url, '')
 
     print 'Done!'
 
     # Log latest tweet
-    f.seek(0, 0)
-    f.write(str(statuses[0].id))
+    F.seek(0, 0)
+    F.write(str(STATUSES[0].id))
 
 else:
     print "No new tweets since this script was last run."
 
-f.close()
+F.close()
