@@ -83,17 +83,15 @@ VAULT_CLIENT = hvac.Client(
     token=os.environ['VAULT_TOKEN']
 )
 
-# Read the data written under path: secret/instapaper
-VAULT_READ_RESPONSE = VAULT_CLIENT.secrets.kv.read_secret_version(path='instapaper')
-# print('Value under path "secret/instapaper" / key "username": {val}'.format(\
-# val=VAULT_READ_RESPONSE['data']['data']['username'],))
+# Read the data written under path: hntoinstapaper/instapaper
+VAULT_READ_RESPONSE = VAULT_CLIENT.secrets.kv.v2.read_secret_version(mount_point='hntoinstapaper', path='instapaper')
 
 # Write the secrets to variables
 INSTAPAPER_UN = VAULT_READ_RESPONSE['data']['data']['username']
 INSTAPAPER_PW = VAULT_READ_RESPONSE['data']['data']['password']
 
-# Read the data written under path: secret/twitter
-VAULT_READ_RESPONSE = VAULT_CLIENT.secrets.kv.read_secret_version(path='twitter')
+# Read the data written under path: hntoinstapaper/twitter
+VAULT_READ_RESPONSE = VAULT_CLIENT.secrets.kv.v2.read_secret_version(mount_point='hntoinstapaper', path='twitter')
 
 # Write the secrets to variables
 CONSUMER_KEY = VAULT_READ_RESPONSE['data']['data']['CONSUMER_KEY']
